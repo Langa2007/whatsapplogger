@@ -8,6 +8,7 @@ import android.os.Environment
 import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -19,6 +20,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var messageAdapter: MessageAdapter
     private lateinit var statusText: TextView
+    private lateinit var emptyView: TextView
     private lateinit var enableButton: Button
     private lateinit var accessibilityButton: Button
 
@@ -27,12 +29,17 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         statusText = findViewById(R.id.statusText)
+        emptyView = findViewById(R.id.emptyView)
         enableButton = findViewById(R.id.enableButton)
         accessibilityButton = findViewById(R.id.accessibilityButton)
         val recyclerView = findViewById<RecyclerView>(R.id.messageRecyclerView)
 
         // Setup RecyclerView
-        messageAdapter = MessageAdapter()
+        messageAdapter = MessageAdapter { message ->
+            // Handle click - Show details in a Toast for now
+            val details = "From: ${message.sender}\nContent: ${message.content}\nPkg: ${message.packageName}"
+            android.widget.Toast.makeText(this, details, android.widget.Toast.LENGTH_LONG).show()
+        }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = messageAdapter
 
@@ -56,6 +63,20 @@ class MainActivity : AppCompatActivity() {
 
         // Load messages
         loadMessages()
+
+        // Long click status to clear database (for debugging)
+        statusText.setOnLongClickListener {
+            clearDatabase()
+            true
+        }
+    }
+
+    private fun clearDatabase() {
+        lifecycleScope.launch {
+            val db = AppDatabase.getDatabase(applicationContext)
+            db.messageDao().deleteOldMessages(System.currentTimeMillis() + 10000) // Delete all
+            android.widget.Toast.makeText(this@MainActivity, "Database Cleared", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun checkAllFilesAccess() {
@@ -117,8 +138,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openAccessibilitySettings() {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        startActivity(intent)
+        val componentName = android.content.ComponentName(packageName, ChatInterceptorService::class.java.name)
+        
+        // On Android 14+ (API 34), we can attempt to open the details page directly
+        if (Build.VERSION.SDK_INT >= 34) {
+            try {
+                // Using the literal string to avoid compilation issues if SDK index is lagging
+                val intent = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
+                    putExtra(Intent.EXTRA_COMPONENT_NAME, componentName.flattenToString())
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+                return
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to open specific settings: ${e.message}")
+            }
+        }
+
+        // Fallback for older versions or if the direct intent fails
+        try {
+            // Show a helpful dialog first because the screen they are going to is confusing (especially on Samsung)
+            AlertDialog.Builder(this)
+                .setTitle("Enable Scrapper")
+                .setMessage("On the next screen:\n\n1. Tap 'Installed apps' (usually at the bottom)\n2. Find 'Notification Logger'\n3. Turn the switch ON")
+                .setPositiveButton("Open Settings") { _, _ ->
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error opening accessibility settings: ${e.message}")
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
     }
 
     private fun loadMessages() {
@@ -126,6 +177,7 @@ class MainActivity : AppCompatActivity() {
             val db = AppDatabase.getDatabase(applicationContext)
             db.messageDao().getAllMessages().collect { messages ->
                 messageAdapter.submitList(messages)
+                emptyView.visibility = if (messages.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
             }
         }
     }

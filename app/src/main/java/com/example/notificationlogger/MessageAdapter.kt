@@ -9,7 +9,7 @@ import com.example.notificationlogger.data.Message
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MessageAdapter : RecyclerView.Adapter<MessageAdapter.MessageViewHolder>() {
+class MessageAdapter(private val onItemClick: (Message) -> Unit) : RecyclerView.Adapter<MessageAdapter.MessageViewHolder>() {
 
     private var messages: List<Message> = emptyList()
 
@@ -21,7 +21,7 @@ class MessageAdapter : RecyclerView.Adapter<MessageAdapter.MessageViewHolder>() 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_message, parent, false)
-        return MessageViewHolder(view)
+        return MessageViewHolder(view, onItemClick)
     }
 
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
@@ -31,7 +31,7 @@ class MessageAdapter : RecyclerView.Adapter<MessageAdapter.MessageViewHolder>() 
 
     override fun getItemCount(): Int = messages.size
 
-    class MessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class MessageViewHolder(itemView: View, private val onItemClick: (Message) -> Unit) : RecyclerView.ViewHolder(itemView) {
         private val senderTextView: TextView = itemView.findViewById(R.id.senderTextView)
         private val contentTextView: TextView = itemView.findViewById(R.id.contentTextView)
         private val timestampTextView: TextView = itemView.findViewById(R.id.timestampTextView)
@@ -50,6 +50,10 @@ class MessageAdapter : RecyclerView.Adapter<MessageAdapter.MessageViewHolder>() 
 
             val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
             timestampTextView.text = dateFormat.format(Date(message.timestamp))
+
+            itemView.setOnClickListener {
+                onItemClick(message)
+            }
         }
     }
 }

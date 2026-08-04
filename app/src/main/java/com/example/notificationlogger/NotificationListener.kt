@@ -42,7 +42,8 @@ class NotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         sbn?.let {
-            if (it.packageName == "com.whatsapp") {
+            val pkg = it.packageName
+            if (pkg == "com.whatsapp" || pkg == "com.whatsapp.w4b") {
                 val extras = it.notification.extras
                 val title = extras.getString(Notification.EXTRA_TITLE) ?: ""
                 val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
@@ -53,7 +54,7 @@ class NotificationListener : NotificationListenerService() {
 
                 // Extract sender name
                 val sender = title.trim()
-                if (sender.isEmpty()) return
+                if (sender.isEmpty() || sender == "WhatsApp") return // Ignore generic "WhatsApp" titles
 
                 // Special handling for WhatsApp "View once" and "Deleted" messages
                 val isDeletedNotification = content.contains("This message was deleted", ignoreCase = true)
@@ -62,12 +63,13 @@ class NotificationListener : NotificationListenerService() {
 
                 // Ignore background sync notifications
                 if (content.contains("Checking for new messages", ignoreCase = true)) return
+                if (content.contains("WhatsApp Web is currently active", ignoreCase = true)) return
 
                 if (isDeletedNotification) {
-                    markMessageAsDeleted(sender, it.packageName)
+                    markMessageAsDeleted(sender, pkg)
                 } else if (content.isNotEmpty()) {
-                    saveMessage(sender, content, it.packageName, isViewOnce)
-                    Log.d(TAG, "Message processed from: $sender (View Once: $isViewOnce)")
+                    saveMessage(sender, content, pkg, isViewOnce)
+                    Log.d(TAG, "Message processed from: $sender in $pkg")
                 }
             }
         }
