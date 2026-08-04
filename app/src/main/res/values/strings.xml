@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Notification Logger</string>
+    <string name="accessibility_description">Used to log WhatsApp messages when the app is open.</string>
+</resources>
