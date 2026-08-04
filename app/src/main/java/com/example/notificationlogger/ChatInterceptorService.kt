@@ -19,16 +19,19 @@ class ChatInterceptorService : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return
         val pkgName = event.packageName?.toString() ?: ""
         
-        // We only care about WhatsApp for now as it's the target
-        if (pkgName != "com.whatsapp" && pkgName != "com.whatsapp.w4b") {
-            return
+        try {
+            // We only care about WhatsApp for now as it's the target
+            if (pkgName == "com.whatsapp" || pkgName == "com.whatsapp.w4b") {
+                // 1. Try to find the person we are chatting with from the toolbar
+                updateChatUser(rootNode, pkgName)
+
+                // 2. Scrape all visible text messages
+                scrapeMessages(rootNode, pkgName)
+            }
+        } finally {
+            // Always recycle to prevent memory leaks and "stale" nodes
+            rootNode.recycle()
         }
-
-        // 1. Try to find the person we are chatting with from the toolbar
-        updateChatUser(rootNode, pkgName)
-
-        // 2. Scrape all visible text messages
-        scrapeMessages(rootNode, pkgName)
     }
 
     private fun updateChatUser(root: AccessibilityNodeInfo, pkgName: String) {

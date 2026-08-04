@@ -35,6 +35,7 @@ class MessageAdapter(private val onItemClick: (Message) -> Unit) : RecyclerView.
         private val senderTextView: TextView = itemView.findViewById(R.id.senderTextView)
         private val contentTextView: TextView = itemView.findViewById(R.id.contentTextView)
         private val timestampTextView: TextView = itemView.findViewById(R.id.timestampTextView)
+        private val mediaIndicator: TextView = itemView.findViewById(R.id.mediaIndicator)
 
         fun bind(message: Message) {
             senderTextView.text = message.sender
@@ -47,6 +48,8 @@ class MessageAdapter(private val onItemClick: (Message) -> Unit) : RecyclerView.
                 contentTextView.text = message.content
                 contentTextView.alpha = 1.0f
             }
+
+            mediaIndicator.visibility = if (message.mediaPath != null) View.VISIBLE else View.GONE
 
             val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
             timestampTextView.text = dateFormat.format(Date(message.timestamp))

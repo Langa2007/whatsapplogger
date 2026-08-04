@@ -35,6 +35,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ChatDetailActivity"
+            android:label="Chat History"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <!-- Notification Listener Service -->
         <service
             android:name=".NotificationListener"
@@ -60,6 +64,16 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.notificationlogger.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
 
     </application>
 

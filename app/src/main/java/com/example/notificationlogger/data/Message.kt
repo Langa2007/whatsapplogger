@@ -12,5 +12,6 @@ data class Message(
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isDeleted: Boolean = false,
-    val packageName: String = ""
+    val packageName: String = "",
+    val mediaPath: String? = null
 )

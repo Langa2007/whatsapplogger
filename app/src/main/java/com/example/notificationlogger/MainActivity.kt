@@ -28,6 +28,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        supportActionBar?.title = "Logged Chats"
+
         statusText = findViewById(R.id.statusText)
         emptyView = findViewById(R.id.emptyView)
         enableButton = findViewById(R.id.enableButton)
@@ -36,9 +38,10 @@ class MainActivity : AppCompatActivity() {
 
         // Setup RecyclerView
         messageAdapter = MessageAdapter { message ->
-            // Handle click - Show details in a Toast for now
-            val details = "From: ${message.sender}\nContent: ${message.content}\nPkg: ${message.packageName}"
-            android.widget.Toast.makeText(this, details, android.widget.Toast.LENGTH_LONG).show()
+            val intent = Intent(this, ChatDetailActivity::class.java).apply {
+                putExtra("SENDER_NAME", message.sender)
+            }
+            startActivity(intent)
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = messageAdapter
@@ -175,9 +178,14 @@ class MainActivity : AppCompatActivity() {
     private fun loadMessages() {
         lifecycleScope.launch {
             val db = AppDatabase.getDatabase(applicationContext)
-            db.messageDao().getAllMessages().collect { messages ->
+            db.messageDao().getChatList().collect { messages ->
                 messageAdapter.submitList(messages)
                 emptyView.visibility = if (messages.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                
+                // Debug status update
+                if (messages.isNotEmpty()) {
+                    statusText.text = "✅ Logging Active (${messages.size} chats)"
+                }
             }
         }
     }

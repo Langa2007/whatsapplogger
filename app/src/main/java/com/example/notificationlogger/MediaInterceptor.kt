@@ -5,6 +5,10 @@ import android.os.Environment
 import android.os.FileObserver
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.example.notificationlogger.data.AppDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -90,11 +94,35 @@ class MediaInterceptor(private val context: Context) {
                         }
                         Log.d(TAG, "🚀 INTERCEPTED: Saved to ${destination.absolutePath}")
                         copied = true
+                        
+                        // Try to link this media to the most recent message in the database (within 30 seconds)
+                        linkMediaToDatabase(destination.absolutePath)
                     }
                     attempts++
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Interception failed for ${file.name}: ${e.message}")
+            }
+        }
+    }
+
+    private fun linkMediaToDatabase(path: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val db = AppDatabase.getDatabase(context)
+                val thirtySecondsAgo = System.currentTimeMillis() - 30000
+                val latestMessage = db.messageDao().getLatestMessageForMedia(thirtySecondsAgo)
+                
+                latestMessage?.let {
+                    // Only link if it doesn't have media yet
+                    if (it.mediaPath == null) {
+                        val updated = it.copy(mediaPath = path)
+                        db.messageDao().updateMessage(updated)
+                        Log.d(TAG, "Linked media to message from ${it.sender}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error linking media: ${e.message}")
             }
         }
     }
